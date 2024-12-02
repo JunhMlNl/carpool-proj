@@ -14,15 +14,15 @@ import { CreateReviewDto } from './dto/create-review.dto';
 @Injectable()
 export class ReviewsService {
     constructor(
-    private readonly reviewsRepository: ReviewsRepository,
-    @InjectRepository(Users)
-    private readonly usersRepository: Repository<Users>,
-    @InjectRepository(TripsEntity)
-    private readonly tripsRepository: Repository<TripsEntity>,
-    @InjectRepository(RideRequestsEntity)
-    private readonly rideRequestsRepository: Repository<RideRequestsEntity>,
-    @InjectRepository(RidePassengersEntity)
-    private readonly ridePassengersRepository: Repository<RidePassengersEntity>,
+        private readonly reviewsRepository: ReviewsRepository,
+        @InjectRepository(Users)
+        private readonly usersRepository: Repository<Users>,
+        @InjectRepository(TripsEntity)
+        private readonly tripsRepository: Repository<TripsEntity>,
+        @InjectRepository(RideRequestsEntity)
+        private readonly rideRequestsRepository: Repository<RideRequestsEntity>,
+        @InjectRepository(RidePassengersEntity)
+        private readonly ridePassengersRepository: Repository<RidePassengersEntity>,
     ) { }
 
     async createReview(createReviewDto: CreateReviewDto, user: Users): Promise<ReviewsEntity> {
@@ -37,27 +37,14 @@ export class ReviewsService {
             throw new BadRequestException('Trip을 찾을 수 없습니다.');
         }
 
-        // ride_request 상태 확인 (completed만 허용)
         const rideRequest = trip.rideRequest;
+
+        // ride_request의 stauts가 completed인지 확인
         if (rideRequest.status !== 'completed') {
             throw new BadRequestException('ride_request가 completed가 아닙니다.');
         }
 
-        // 리뷰어가 passenger인지 확인
-        const isPassenger = await this.ridePassengersRepository.findOne({
-            where: { rideRequest: { id: rideRequest.id }, passenger: { id: user.id } },
-        });
-        if (!isPassenger) {
-            throw new BadRequestException('passenger만 리뷰를 작성할 수 있습니다.');
-        }
-
-        // 기존 리뷰가 있는지 확인
-        const existingReview = await this.reviewsRepository.findExistingReview(rideRequestId, user.id);
-        if (existingReview) {
-            throw new BadRequestException('이미 리뷰를 작성 했습니다.');
-        }
-
-        // target (driver) 찾기
+        // driver 정보를 가져오기
         const rideRequestWithDriver = await this.rideRequestsRepository.findOne({
             where: { id: rideRequestId },
             relations: ['driver'],
@@ -66,6 +53,22 @@ export class ReviewsService {
         if (!rideRequestWithDriver || !rideRequestWithDriver.driver) {
             throw new BadRequestException('운전자를 찾을 수 없습니다.');
         }
+
+        // 리뷰어가 passenger인지 확인
+        const isPassenger = await this.ridePassengersRepository.findOne({
+            where: { rideRequest: { id: rideRequest.id }, passenger: { id: user.id } },
+        });
+        if (!isPassenger) {
+            throw new BadRequestException('해당 ride_request의 passenger만 리뷰를 작성할 수 있습니다.');
+        }
+
+        // 기존 리뷰가 있는지 확인
+        const existingReview = await this.reviewsRepository.findExistingReview(rideRequestId, user.id);
+        if (existingReview) {
+            throw new BadRequestException('이미 리뷰를 작성 했습니다.');
+        }
+
+
 
         // 리뷰생성
         const review = this.reviewsRepository.create({
@@ -109,7 +112,8 @@ export class ReviewsService {
         }));
 
         const averageRating = reviews.length > 0
-        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
+            ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+            : 0;
 
         return { reviews: transformedReviews, averageRating };
     }
