@@ -24,6 +24,7 @@ export class AuthService {
     // jwt 서비스 등록
     private jwtService: JwtService,
     private configService: ConfigService,
+    private configService: ConfigService,
   ) {}
 
   // 회원가입

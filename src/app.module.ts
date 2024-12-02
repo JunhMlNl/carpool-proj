@@ -19,6 +19,15 @@ import { MatchingModule } from './matching/matching.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => typeORMConfig(configService)
     }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env'
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => typeORMConfig(configService)
+    }),
     AuthModule,
     MailModule,
     JwtConfigModule,

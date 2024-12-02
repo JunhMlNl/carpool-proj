@@ -1,16 +1,22 @@
 import {
   BaseEntity,
   Column,
-  Entity,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn, OneToOne,
-} from 'typeorm';
-import { UserRole } from './dto/user-role.enum';
-import { Profile } from './profile.entity';
+  Entity,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
+  OneToMany
+} from "typeorm";
+import { UserRole } from "../dto/user-role.enum";
+import { VehicleInfo } from "./vehicle-info.entity";
+import { Profile } from "./profile.entity";
+import { ReviewsEntity } from "src/reviews/entities/reviews.entity";
 
 @Entity('users')
-export class User extends BaseEntity {
+@Unique(['username']) // email 유니크는 테스트를 위해 잠시 off
+export class Users extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -20,8 +26,8 @@ export class User extends BaseEntity {
   @Column({ name: 'password', type: 'varchar' })
   password: string;
 
-  @Column({ name: 'name', type: 'varchar', length: 100 })
-  name: string;
+  @Column({ name: 'username', type: 'varchar', length: 100 })
+  username: string;
 
   @Column({ name: 'phone_number', type: 'varchar', nullable: true })
   phoneNumber: string;
@@ -35,19 +41,10 @@ export class User extends BaseEntity {
   @Column({ name: 'penalty_point', type: 'int', default: 0 })
   penaltyPoint: number;
 
-  @CreateDateColumn({
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({
-    name: 'updated_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn()
   updatedAt: Date;
 
   @Column({ name: 'last_login', type: 'timestamp', nullable: true })
@@ -56,6 +53,19 @@ export class User extends BaseEntity {
   @Column({ name: 'refresh_token', type: 'varchar', nullable: true })
   refreshToken: string | null;
 
+  @OneToOne(() => VehicleInfo, (vehicleInfo) => vehicleInfo.user)
+  vehicleInfo: VehicleInfo;
+
   @OneToOne(() => Profile, (profile) => profile.user)
   profile: Profile;
+
+  // 작성한 리뷰
+  @OneToMany(() => ReviewsEntity, (review) => review.reviewer)
+  reviewsWritten: ReviewsEntity[];
+
+  // 받은 리뷰
+  @OneToMany(() => ReviewsEntity, (review) => review.target)
+  reviewsReceived: ReviewsEntity[];
+
+
 }

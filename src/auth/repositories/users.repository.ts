@@ -1,26 +1,29 @@
-import { DataSource, Repository } from "typeorm";
-import { User } from "./user.entity";
-import { Vehicle } from "./vehicle.entity";
-import { ConflictException, Injectable, InternalServerErrorException } from "@nestjs/common";
-import { AuthCredentialDto } from "./dto/auth-credential.dto";
-import * as bcrypt from "bcryptjs";
-import { Profile } from './profile.entity';
+import {DataSource, Repository} from "typeorm";
+import {Users} from "../entities/users.entity";
+import {ConflictException, Injectable, InternalServerErrorException} from "@nestjs/common";
+import {AuthCredentialDto} from "../dto/auth-credential.dto";
+import * as bcrypt from 'bcryptjs';
+import { UserRole } from "../dto/user-role.enum";
+import { VehicleInfo } from "../entities/vehicle-info.entity";
+import { Profile } from "../entities/profile.entity";
 
 @Injectable()
-export class UserRepository extends Repository<User> {
+export class UsersRepository extends Repository<Users>{
   constructor(private dataSource: DataSource) {
-    super(User, dataSource.createEntityManager());
+    super(Users, dataSource.createEntityManager());
   }
 
   async createUser(authCredentialDto: AuthCredentialDto): Promise<void> {
-    const { email, name, password, phoneNumber, role, vehicleInfo } = authCredentialDto;
+    const {  email , username, password, phoneNumber, role, vehicleInfo } = authCredentialDto;
 
+    // 비밀번호 암호화 작업
+    // 유니크한 salt 생성후 비밀번호와 salt 값을 합쳐서 해쉬된 비밀번호를 얻고 그 비밀번호를 데이터베이스에 저장
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = this.create({
       email,
-      name,
+      username,
       password: hashedPassword,
       phoneNumber,
       role,
@@ -42,7 +45,7 @@ export class UserRepository extends Repository<User> {
       await queryRunner.manager.save(profile);
 
       if (role === "driver" && vehicleInfo) {
-        const vehicle = queryRunner.manager.create(Vehicle, {
+        const vehicle = queryRunner.manager.create(VehicleInfo, {
           userId: savedUser.id,
           vehicleModel: vehicleInfo.model,
           licensePlate: vehicleInfo.licensePlate,
@@ -63,4 +66,5 @@ export class UserRepository extends Repository<User> {
       await queryRunner.release();
     }
   }
+
 }
